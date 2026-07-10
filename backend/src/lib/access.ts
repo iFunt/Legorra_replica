@@ -120,6 +120,40 @@ export async function ensureReviewAccess(
 }
 
 /**
+ * Same shape as `ensureReviewAccess`, for claims. A claim can be shared
+ * directly via `claims.shared_with`, or indirectly via project membership
+ * when the claim is filed under a project. The owner (claim.user_id)
+ * always has access.
+ */
+export async function ensureClaimAccess(
+    claim: {
+        user_id: string;
+        project_id: string | null;
+        shared_with?: string[] | null;
+    },
+    userId: string,
+    userEmail: string | null | undefined,
+    db: Db,
+): Promise<{ ok: true; isOwner: boolean } | { ok: false }> {
+    if (claim.user_id === userId) return { ok: true, isOwner: true };
+    const email = (userEmail ?? "").toLowerCase();
+    if (email && Array.isArray(claim.shared_with)) {
+        if (claim.shared_with.some((e) => (e ?? "").toLowerCase() === email)) {
+            return { ok: true, isOwner: false };
+        }
+    }
+    if (!claim.project_id) return { ok: false };
+    const access = await checkProjectAccess(
+        claim.project_id,
+        userId,
+        userEmail,
+        db,
+    );
+    if (access.ok) return { ok: true, isOwner: false };
+    return { ok: false };
+}
+
+/**
  * Returns the set of project IDs the user can access — own projects plus
  * any project where their email is in `shared_with`. Used to scope chat
  * lists and similar collection queries.

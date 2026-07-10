@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { SiteLogo } from "@/components/site-logo";
 import { CheckCircle2 } from "lucide-react";
+import { GoogleAuthButton } from "@/components/google-auth-button";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function SignupPage() {
@@ -252,6 +253,14 @@ export default function SignupPage() {
                             {loading ? "Creating account..." : "Sign up"}
                         </Button>
                     </form>
+
+                    <div className="my-5 flex items-center gap-3">
+                        <div className="h-px flex-1 bg-gray-200" />
+                        <span className="text-xs text-gray-400">or</span>
+                        <div className="h-px flex-1 bg-gray-200" />
+                    </div>
+
+                    <GoogleAuthButton label="Sign up with Google" />
 
                     {/* Terms and Privacy */}
                     <div className="mt-4 text-center text-xs text-gray-500">

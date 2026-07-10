@@ -7,6 +7,7 @@ import {
     FolderOpen,
     Table2,
     Library,
+    Scale,
     User,
     ChevronsUpDown,
     ChevronDown,
@@ -23,6 +24,7 @@ import { listProjects } from "@/app/lib/mikeApi";
 const NAV_ITEMS = [
     { href: "/assistant", label: "Assistant", icon: MessageSquare },
     { href: "/projects", label: "Projects", icon: FolderOpen },
+    { href: "/claims", label: "GDPR Claims", icon: Scale },
     { href: "/tabular-reviews", label: "Tabular Review", icon: Table2 },
     { href: "/workflows", label: "Workflows", icon: Library },
 ];

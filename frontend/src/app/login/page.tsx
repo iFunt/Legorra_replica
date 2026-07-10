@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { SiteLogo } from "@/components/site-logo";
+import { GoogleAuthButton } from "@/components/google-auth-button";
 import { useAuth } from "@/contexts/AuthContext";
 export default function LoginPage() {
     const router = useRouter();
@@ -118,6 +119,14 @@ export default function LoginPage() {
                             {loading ? "Logging in..." : "Log in"}
                         </Button>
                     </form>
+
+                    <div className="my-5 flex items-center gap-3">
+                        <div className="h-px flex-1 bg-gray-200" />
+                        <span className="text-xs text-gray-400">or</span>
+                        <div className="h-px flex-1 bg-gray-200" />
+                    </div>
+
+                    <GoogleAuthButton />
                 </div>
             </div>
         </div>
