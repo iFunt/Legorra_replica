@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "postinstall": "playwright install --with-deps chromium || playwright install chromium || true"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.90.0",
@@ -25,6 +26,7 @@
     "mammoth": "^1.9.0",
     "multer": "^1.4.5-lts.2",
     "pdfjs-dist": "^4.10.38",
+    "playwright": "^1.62.0",
     "resend": "^4.5.1"
   },
   "devDependencies": {

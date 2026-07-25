@@ -1,2 +1,9 @@
 [phases.setup]
-nixPkgs = ["libreoffice"]
+nixPkgs = ["libreoffice", "playwright-driver.browsers"]
+
+# The PrivacyDrift scanner (src/lib/privacyDrift/scanner.ts) needs a
+# Chromium binary. `playwright-driver.browsers` above bundles one via nix;
+# point Playwright at it by setting these two env vars on the deployment
+# (see README "PrivacyDrift Analyzer" section for the exact store path):
+#   PLAYWRIGHT_BROWSERS_PATH=<nix store path of playwright-driver.browsers>
+#   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1

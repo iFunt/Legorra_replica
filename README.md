@@ -46,6 +46,27 @@ Open `http://localhost:3000`.
 - S3-compatible object storage, such as Cloudflare R2
 - At least one supported model provider key, depending on which models you enable
 - LibreOffice for DOC/DOCX to PDF conversion
+- Chromium (via Playwright) for the PrivacyDrift Analyzer scanner — see below
+
+## PrivacyDrift Analyzer
+
+Compares a target domain's stated privacy policy against the actual
+third-party requests its site makes, under three cookie-consent states
+(accept all / reject all / ignore), and flags contradictions with a
+regulatory-risk tag and evidence PDF. Code lives under
+`backend/src/lib/privacyDrift/` and `backend/src/routes/privacyDrift.ts`;
+schema is `backend/migrations/001_privacy_drift.sql`.
+
+The scanner needs a Chromium binary:
+
+```bash
+npx playwright install chromium
+```
+
+This runs automatically via the backend's `postinstall` script on `npm install`.
+On Nix-based deployments (see `backend/nixpacks.toml`), set
+`PLAYWRIGHT_BROWSERS_PATH` to the `playwright-driver.browsers` store path and
+`PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1` instead of downloading at build time.
 
 ## Checks
 

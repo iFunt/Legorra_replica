@@ -17,6 +17,7 @@ import type {
     TabularReview,
     TabularReviewDetailOut,
 } from "@/app/components/shared/types";
+import type { PrivacyScan, PrivacyScanDetail } from "@/app/components/privacy-drift/types";
 
 // Server-side shape before mapping
 interface ServerMessage {
@@ -814,4 +815,44 @@ export async function deleteWorkflowShare(
     await apiRequest(`/workflows/${workflowId}/shares/${shareId}`, {
         method: "DELETE",
     });
+}
+
+// ---------------------------------------------------------------------------
+// PrivacyDrift Analyzer
+// ---------------------------------------------------------------------------
+
+export async function listPrivacyScans(): Promise<PrivacyScan[]> {
+    return apiRequest<PrivacyScan[]>("/privacy-drift/scans");
+}
+
+export async function createPrivacyScan(
+    domain: string,
+    projectId?: string,
+): Promise<PrivacyScan> {
+    return apiRequest<PrivacyScan>("/privacy-drift/scans", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ domain, project_id: projectId }),
+    });
+}
+
+export async function getPrivacyScan(scanId: string): Promise<PrivacyScanDetail> {
+    return apiRequest<PrivacyScanDetail>(`/privacy-drift/scans/${scanId}`);
+}
+
+export async function deletePrivacyScan(scanId: string): Promise<void> {
+    await apiRequest(`/privacy-drift/scans/${scanId}`, { method: "DELETE" });
+}
+
+export async function downloadPrivacyScanReport(scanId: string): Promise<Blob> {
+    const authHeaders = await getAuthHeader();
+    const response = await fetch(`${API_BASE}/privacy-drift/scans/${scanId}/report`, {
+        cache: "no-store",
+        headers: { ...authHeaders },
+    });
+    if (!response.ok) {
+        const detail = await response.text();
+        throw new Error(detail || `API error: ${response.status}`);
+    }
+    return response.blob();
 }
