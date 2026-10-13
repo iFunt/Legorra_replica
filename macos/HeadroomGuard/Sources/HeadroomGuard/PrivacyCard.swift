@@ -6,15 +6,19 @@ import AppKit
 /// extensions and apps holding sensitive macOS permissions.
 struct PrivacyCard: View {
     @ObservedObject var privacy: PrivacyStore
-    @State private var showAllExtensions = false
+    @State private var extFilter: ExtFilter = .full
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            alertsSection
-            trafficSection
-            extensionsSection
-            accessSection
+        // Scrolls so every section is reachable on a laptop screen.
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                alertsSection
+                trafficSection
+                extensionsSection
+                accessSection
+            }
         }
+        .frame(height: min(680, (NSScreen.main?.visibleFrame.height ?? 800) - 120))
     }
 
     // MARK: Alerts
@@ -108,41 +112,45 @@ struct PrivacyCard: View {
 
     // MARK: Extensions
 
+    private enum ExtFilter: String, CaseIterable, Identifiable {
+        case full = "Full access", risky = "Risky", all = "All"
+        var id: String { rawValue }
+    }
+
     private var extensionsSection: some View {
-        let risky = privacy.extensions.filter { $0.level >= .medium }
-        let shown = showAllExtensions ? privacy.extensions : Array(risky.prefix(5))
+        let shown: [ExtensionInfo]
+        switch extFilter {
+        case .full: shown = privacy.extensions.filter(\.fullAccess)
+        case .risky: shown = privacy.extensions.filter { $0.level >= .medium }
+        case .all: shown = privacy.extensions
+        }
+        let byBrowser = Dictionary(grouping: shown, by: \.browser).sorted { $0.key < $1.key }
+        let fullCount = privacy.extensions.filter(\.fullAccess).count
         return VStack(alignment: .leading, spacing: 8) {
-            CardHeader(title: "Browser extensions", icon: "puzzlepiece.extension", tint: risky.isEmpty ? .green : .orange,
-                       trailing: "\(privacy.extensions.filter { $0.level == .high }.count) high · \(privacy.extensions.count) total")
-            if privacy.extensions.isEmpty {
-                Text(privacy.lastScan == nil ? "Scanning…" : "No Chromium or Firefox extensions found.")
-                    .font(.system(size: 11)).foregroundStyle(.secondary)
+            CardHeader(title: "Browser extensions", icon: "puzzlepiece.extension", tint: fullCount > 0 ? .orange : .green,
+                       trailing: "\(fullCount) with full access · \(privacy.extensions.count) total")
+            Picker("", selection: $extFilter) {
+                ForEach(ExtFilter.allCases) { Text($0.rawValue).tag($0) }
             }
-            ForEach(shown) { e in
-                VStack(alignment: .leading, spacing: 1) {
-                    HStack(spacing: 6) {
-                        Text(e.level.label.uppercased()).font(.system(size: 9, weight: .bold))
-                            .padding(.horizontal, 4).padding(.vertical, 1)
-                            .background(Capsule().fill(color(e.level).opacity(0.2)))
-                            .foregroundStyle(color(e.level))
-                        Text(e.name).font(.system(size: 11.5, weight: .medium)).lineLimit(1)
-                        Spacer(minLength: 4)
-                        Text(e.browser).font(.system(size: 10)).foregroundStyle(.secondary).lineLimit(1)
-                    }
-                    if !e.reasons.isEmpty {
-                        Text(e.reasons.prefix(3).joined(separator: " · ")).font(.system(size: 10)).foregroundStyle(.secondary).lineLimit(2)
-                    }
-                }
-                .help("\(e.extID) v\(e.version)\nPermissions: \(e.permissions.joined(separator: ", "))\nSites: \(e.hosts.prefix(10).joined(separator: ", "))")
+            .pickerStyle(.segmented).labelsHidden()
+            if privacy.extensions.isEmpty {
+                Text(privacy.lastScan == nil ? "Scanning…" : "No Chrome, Opera, Brave, Edge, Arc or Firefox extensions found.")
+                    .font(.system(size: 11)).foregroundStyle(.secondary)
+            } else if shown.isEmpty {
+                Text("None in this view.").font(.system(size: 11)).foregroundStyle(.secondary)
+            }
+            ForEach(byBrowser, id: \.key) { group in
+                Text("\(group.key.uppercased())  \(group.value.count)")
+                    .font(.system(size: 9.5, weight: .bold)).tracking(0.5).foregroundStyle(.secondary).padding(.top, 2)
+                ForEach(group.value) { e in extensionRow(e) }
             }
             HStack {
-                if privacy.extensions.count > shown.count || showAllExtensions {
-                    Button(showAllExtensions ? "Show risky only" : "Show all \(privacy.extensions.count)") { showAllExtensions.toggle() }
-                }
+                Text("Full access = can read and change every page you open, including logged-in sites.")
+                    .font(.system(size: 9.5)).foregroundStyle(.tertiary).fixedSize(horizontal: false, vertical: true)
                 Spacer()
-                Button(action: privacy.rescan) { Image(systemName: "arrow.clockwise") }.help("Rescan extensions and permissions")
+                Button(action: privacy.rescan) { Image(systemName: "arrow.clockwise") }
+                    .buttonStyle(.borderless).help("Rescan extensions and permissions")
             }
-            .buttonStyle(.borderless).font(.system(size: 11))
             Text("Extension traffic is counted under its browser; macOS cannot split it per extension. Risk is what an extension is allowed to do, not proof of misuse.")
                 .font(.system(size: 9.5)).foregroundStyle(.tertiary).fixedSize(horizontal: false, vertical: true)
         }
@@ -150,32 +158,62 @@ struct PrivacyCard: View {
         .background(CardBackground())
     }
 
+    private func extensionRow(_ e: ExtensionInfo) -> some View {
+        VStack(alignment: .leading, spacing: 1) {
+            HStack(spacing: 6) {
+                Text(e.level.label.uppercased()).font(.system(size: 9, weight: .bold))
+                    .padding(.horizontal, 4).padding(.vertical, 1)
+                    .background(Capsule().fill(color(e.level).opacity(0.2)))
+                    .foregroundStyle(color(e.level))
+                Text(e.name).font(.system(size: 11.5, weight: .medium)).lineLimit(1)
+                Spacer(minLength: 4)
+                if e.profile != "Default" {
+                    Text(e.profile).font(.system(size: 10)).foregroundStyle(.secondary).lineLimit(1)
+                }
+            }
+            if !e.reasons.isEmpty {
+                Text(e.reasons.prefix(3).joined(separator: " · ")).font(.system(size: 10)).foregroundStyle(.secondary).lineLimit(2)
+            }
+        }
+        .help("\(e.extID) v\(e.version)\nPermissions: \(e.permissions.joined(separator: ", "))\nSites: \(e.hosts.prefix(10).joined(separator: ", "))")
+    }
+
     // MARK: macOS permissions
 
     private var accessSection: some View {
         let sensitive = privacy.grants.filter { AccessScanner.watchedServices.contains($0.service) }
-        let byApp = Dictionary(grouping: sensitive, by: \.app).sorted { $0.key < $1.key }
+        let byApp = Dictionary(grouping: sensitive, by: \.app).sorted { a, b in
+            // Apps that can read everything (Full Disk Access) or control the Mac first.
+            let rank = { (g: [AccessGrant]) in g.contains { $0.service == "Full Disk Access" } ? 0 : g.contains { $0.service == "Accessibility" } ? 1 : 2 }
+            return (rank(a.value), a.key) < (rank(b.value), b.key)
+        }
         return VStack(alignment: .leading, spacing: 8) {
-            CardHeader(title: "Apps you gave access", icon: "hand.raised", tint: .purple,
+            CardHeader(title: "Apps with full or sensitive access", icon: "hand.raised", tint: .purple,
                        trailing: privacy.accessReadable == true ? "\(byApp.count) apps" : nil)
             if privacy.accessReadable == false {
-                Text("Give Headroom Guard Full Disk Access to list which apps can record your screen, read all files or watch your keyboard.")
+                Text("Give Headroom Guard Full Disk Access to list which apps can read all your files, record your screen or watch your keyboard.")
                     .font(.system(size: 11)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 Button("Open Full Disk Access settings") {
                     NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles")!)
                 }
                 .buttonStyle(.borderless).font(.system(size: 11))
+                Text("After adding it, quit and reopen Headroom Guard.").font(.system(size: 10)).foregroundStyle(.tertiary)
+            } else if byApp.isEmpty {
+                Text(privacy.accessReadable == nil ? "Scanning…" : "No apps hold sensitive permissions.")
+                    .font(.system(size: 11)).foregroundStyle(.secondary)
             } else {
-                ForEach(Array(byApp.prefix(8)), id: \.key) { pair in
+                ForEach(byApp, id: \.key) { pair in
+                    let full = pair.value.contains { $0.service == "Full Disk Access" }
                     HStack(alignment: .firstTextBaseline) {
+                        if full {
+                            Text("FULL").font(.system(size: 9, weight: .bold)).foregroundStyle(.red)
+                                .padding(.horizontal, 4).padding(.vertical, 1).background(Capsule().fill(Color.red.opacity(0.15)))
+                        }
                         Text(pair.key).font(.system(size: 11.5, weight: .medium)).lineLimit(1)
                         Spacer(minLength: 6)
                         Text(pair.value.map(\.service).joined(separator: ", ")).font(.system(size: 10)).foregroundStyle(.secondary)
                             .lineLimit(2).multilineTextAlignment(.trailing)
                     }
-                }
-                if byApp.count > 8 {
-                    Text("+\(byApp.count - 8) more").font(.system(size: 10.5)).foregroundStyle(.secondary)
                 }
             }
         }

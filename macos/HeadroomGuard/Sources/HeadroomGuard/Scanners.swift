@@ -39,7 +39,8 @@ enum ExtensionScanner {
         for profile in profiles {
             let rel = profile.path.replacingOccurrences(of: support.path + "/", with: "")
             let parts = rel.split(separator: "/").map(String.init).filter { $0 != "User Data" }
-            let browser = parts.count > 1 ? parts.dropLast().joined(separator: " ") : (parts.first ?? rel)
+            let folder = parts.count > 1 ? parts.dropLast().joined(separator: " ") : (parts.first ?? rel)
+            let browser = browserNames[folder] ?? folder
             let profileName = parts.count > 1 ? parts.last! : "Default"
             let extDir = profile.appendingPathComponent("Extensions")
             for id in (try? fm.contentsOfDirectory(atPath: extDir.path)) ?? [] where !id.hasPrefix(".") && id != "Temp" {
@@ -65,6 +66,18 @@ enum ExtensionScanner {
         }
         return result
     }
+
+    /// Friendly names for browser data folders that are not already readable.
+    private static let browserNames: [String: String] = [
+        "com.operasoftware.Opera": "Opera",
+        "com.operasoftware.OperaGX": "Opera GX",
+        "com.operasoftware.OperaAir": "Opera Air",
+        "BraveSoftware Brave-Browser": "Brave",
+        "Google Chrome": "Chrome",
+        "Google Chrome Beta": "Chrome Beta",
+        "Google Chrome Canary": "Chrome Canary",
+        "Microsoft Edge": "Edge",
+    ]
 
     private static func localized(_ name: String, root: URL, defaultLocale: String?) -> String {
         guard name.hasPrefix("__MSG_"), name.hasSuffix("__") else { return name }
@@ -102,7 +115,6 @@ enum ExtensionScanner {
 
     // MARK: Scoring
 
-    private static let broadHosts: Set<String> = ["<all_urls>", "*://*/*", "http://*/*", "https://*/*", "file:///*"]
     private static let weights: [String: (Int, String)] = [
         "debugger": (25, "can attach a debugger to any tab"),
         "proxy": (20, "can route your traffic through a proxy"),
@@ -133,7 +145,7 @@ enum ExtensionScanner {
         var score = 0
         var reasons: [String] = []
         let uniqHosts = Array(Set(hosts)).sorted()
-        if uniqHosts.contains(where: broadHosts.contains) {
+        if uniqHosts.contains(where: ExtensionInfo.allSites.contains) {
             score += 40
             reasons.append("can read and change data on all websites")
         } else if !uniqHosts.isEmpty {

@@ -76,6 +76,12 @@ struct ExtensionInfo: Identifiable, Hashable {
     var level: RiskLevel
     var reasons: [String]
 
+    static let allSites: Set<String> = [
+        "<all_urls>", "*://*/*", "http://*/*", "https://*/*", "*://*/", "http://*/", "https://*/", "file:///*",
+    ]
+    /// Can read and change every page you open (all-sites host access).
+    var fullAccess: Bool { hosts.contains(where: Self.allSites.contains) }
+
     /// Changes when the extension updates or its permissions change.
     var fingerprint: String { (permissions + hosts).sorted().joined(separator: ",") }
 }
