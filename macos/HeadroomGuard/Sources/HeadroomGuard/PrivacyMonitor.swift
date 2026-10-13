@@ -301,13 +301,13 @@ final class PrivacyMonitor {
         var totals: [String: UInt64] = [:]
         for d in days { for (app, t) in state.days[Self.dayKey(d)] ?? [:] { totals[app, default: 0] += t[0] } }
         let top = Set(totals.sorted { $0.value > $1.value }.prefix(4).map(\.key))
-        var bars: [DayBar] = []
+        var bars: [UploadBar] = []
         for d in days {
             var other: UInt64 = 0
             for (app, t) in state.days[Self.dayKey(d)] ?? [:] {
-                if top.contains(app) { bars.append(DayBar(day: d, app: app, megabytes: Double(t[0]) / 1e6)) } else { other += t[0] }
+                if top.contains(app) { bars.append(UploadBar(day: d, app: app, megabytes: Double(t[0]) / 1e6)) } else { other += t[0] }
             }
-            if other > 0 { bars.append(DayBar(day: d, app: "Other", megabytes: Double(other) / 1e6)) }
+            if other > 0 { bars.append(UploadBar(day: d, app: "Other", megabytes: Double(other) / 1e6)) }
         }
         let alerts = state.alerts
         DispatchQueue.main.async {

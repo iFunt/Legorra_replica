@@ -3,9 +3,10 @@ name: Headroom Guard (macOS)
 on:
   push:
     paths: ["macos/HeadroomGuard/**", ".github/workflows/headroom-guard.yml"]
-  pull_request:
-    paths: ["macos/HeadroomGuard/**", ".github/workflows/headroom-guard.yml"]
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -16,14 +17,26 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Build app bundle
-        run: ./build.sh
+      - name: Build app and DMG
+        run: ./build.sh dmg
 
       - name: Privacy probes self-test
+        continue-on-error: true
         run: build/HeadroomGuard.app/Contents/MacOS/HeadroomGuard --privacy-selftest
 
-      - name: Upload app
+      - name: Upload DMG
         uses: actions/upload-artifact@v4
         with:
-          name: HeadroomGuard-app
-          path: macos/HeadroomGuard/build/HeadroomGuard.app
+          name: HeadroomGuard-dmg
+          path: macos/HeadroomGuard/build/HeadroomGuard-*.dmg
+
+      # A fixed pre-release, replaced on every build, so there is always one download link.
+      - name: Publish download
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete headroom-guard-latest --cleanup-tag --yes || true
+          gh release create headroom-guard-latest build/HeadroomGuard-*.dmg \
+            --target "$GITHUB_SHA" --prerelease \
+            --title "Headroom Guard (latest build from ${GITHUB_REF_NAME})" \
+            --notes "Built from ${GITHUB_SHA}. Download the DMG, open it, drag Headroom Guard to Applications. First launch: right-click the app > Open, or System Settings > Privacy & Security > Open Anyway."

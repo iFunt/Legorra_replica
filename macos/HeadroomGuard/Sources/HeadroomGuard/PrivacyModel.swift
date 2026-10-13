@@ -50,7 +50,7 @@ struct AppTraffic: Identifiable {
     var hosts: [String]
 }
 
-struct DayBar: Identifiable {
+struct UploadBar: Identifiable {
     var id: String { "\(day.timeIntervalSince1970)-\(app)" }
     var day: Date
     var app: String
@@ -185,7 +185,7 @@ final class PrivacyStore: ObservableObject {
     @Published var alerts: [PrivacyAlert] = []
     @Published var extensions: [ExtensionInfo] = []
     @Published var grants: [AccessGrant] = []
-    @Published var weekly: [DayBar] = []
+    @Published var weekly: [UploadBar] = []
     /// nil until the first scan; false when Full Disk Access has not been granted.
     @Published var accessReadable: Bool?
     @Published var networkError: String?
