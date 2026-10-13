@@ -82,6 +82,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         }
     }
 
+    /// Opening the app again (Desktop shortcut, Finder, Spotlight) while it runs shows the dashboard.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if !popover.isShown { togglePopover(shieldItem?.button ?? statusItem.button) }
+        return false
+    }
+
     func applicationWillTerminate(_ notification: Notification) {
         ledger.flush()
         privacyMonitor.flush()

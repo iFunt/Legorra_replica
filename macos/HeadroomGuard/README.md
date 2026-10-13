@@ -47,6 +47,15 @@ Browsers are not alerted on by volume unless you turn on "Alert on browser uploa
 
 State is kept in `~/Library/Application Support/HeadroomGuard/privacy-state.json` (90 days of daily totals). Nothing is sent anywhere.
 
+## Install (double-click)
+
+1. In Finder, open `macos/HeadroomGuard` and double-click **Install Headroom Guard.command**.
+   If macOS says it cannot be opened, right-click it > Open > Open.
+2. It builds the app, installs it to Applications, puts a **Headroom Guard** shield icon on your Desktop and launches it.
+3. Afterwards, double-click the Desktop icon to start it, or to open the dashboard if it is already running.
+
+The icon is drawn by `scripts/make-guard-icon.py` (Pillow); rerun it to regenerate `Resources/AppIcon.icns`.
+
 ## Build
 
 ```bash

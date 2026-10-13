@@ -28,8 +28,12 @@ install)
     sleep 0.5
     rm -rf /Applications/HeadroomGuard.app
     cp -R "$APP" /Applications/
+    # Make Finder and the Dock pick up the new icon instead of a cached one.
+    touch /Applications/HeadroomGuard.app
+    # Desktop shortcut: double-click launches the app, or opens the dashboard if it is already running.
+    ln -sfn /Applications/HeadroomGuard.app "$HOME/Desktop/Headroom Guard"
     open /Applications/HeadroomGuard.app
-    echo "Installed and launched /Applications/HeadroomGuard.app"
+    echo "Installed and launched /Applications/HeadroomGuard.app (shortcut on Desktop)"
     ;;
 dmg)
     DMG="build/HeadroomGuard-$VERSION.dmg"
