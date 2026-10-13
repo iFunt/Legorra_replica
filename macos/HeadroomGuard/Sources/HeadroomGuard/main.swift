@@ -69,6 +69,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         timers.forEach { $0.tolerance = 2 }
         if snapshotDir != nil {
             DispatchQueue.main.asyncAfter(deadline: .now() + 8) { [weak self] in self?.writeSnapshots() }
+        } else {
+            installMainMenu()
+            showDashboardWindow()
         }
 
         NotificationCenter.default.addObserver(forName: UserDefaults.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
@@ -83,9 +86,58 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     }
 
     /// Opening the app again (Desktop shortcut, Finder, Spotlight) while it runs shows the dashboard.
+    /// Clicking the Dock icon or opening the app again shows the dashboard window.
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        if !popover.isShown { togglePopover(shieldItem?.button ?? statusItem.button) }
+        showDashboardWindow()
         return false
+    }
+
+    // MARK: Dashboard window
+
+    /// The dashboard in a normal window, so the app is visible even when the menu bar
+    /// has no room for its items (for example behind the MacBook notch).
+    private var dashboardWindow: NSWindow?
+
+    @objc func showDashboardWindow() {
+        if dashboardWindow == nil {
+            let view = PopoverView(store: store, actions: PopoverActions(
+                refresh: { [weak self] in
+                    self?.refreshLimits(force: true)
+                    self?.refreshUsage()
+                },
+                quit: { NSApp.terminate(nil) }))
+            let host = NSHostingController(rootView: view)
+            host.sizingOptions = .preferredContentSize
+            let w = NSWindow(contentViewController: host)
+            w.title = "Headroom Guard"
+            w.styleMask = [.titled, .closable, .miniaturizable]
+            w.isReleasedWhenClosed = false
+            w.center()
+            w.setFrameAutosaveName("Dashboard")
+            dashboardWindow = w
+        }
+        popover.performClose(nil)
+        dashboardWindow?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    private func installMainMenu() {
+        let main = NSMenu()
+        let appItem = NSMenuItem()
+        main.addItem(appItem)
+        let appMenu = NSMenu()
+        appMenu.addItem(withTitle: "Show Dashboard", action: #selector(showDashboardWindow), keyEquivalent: "d").target = self
+        appMenu.addItem(.separator())
+        appMenu.addItem(withTitle: "Hide Headroom Guard", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
+        appMenu.addItem(withTitle: "Quit Headroom Guard", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        appItem.submenu = appMenu
+        let windowItem = NSMenuItem()
+        main.addItem(windowItem)
+        let windowMenu = NSMenu(title: "Window")
+        windowMenu.addItem(withTitle: "Close", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
+        windowMenu.addItem(withTitle: "Minimize", action: #selector(NSWindow.performMiniaturize(_:)), keyEquivalent: "m")
+        windowItem.submenu = windowMenu
+        NSApp.mainMenu = main
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -285,5 +337,5 @@ if CommandLine.arguments.contains("--privacy-selftest") {
 let app = NSApplication.shared
 let delegate = AppDelegate()
 app.delegate = delegate
-app.setActivationPolicy(.accessory)
+app.setActivationPolicy(CommandLine.arguments.contains("--snapshot") ? .accessory : .regular)
 app.run()
