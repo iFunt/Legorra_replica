@@ -1,0 +1,29 @@
+name: Headroom Guard (macOS)
+
+on:
+  push:
+    paths: ["macos/HeadroomGuard/**", ".github/workflows/headroom-guard.yml"]
+  pull_request:
+    paths: ["macos/HeadroomGuard/**", ".github/workflows/headroom-guard.yml"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+    defaults:
+      run:
+        working-directory: macos/HeadroomGuard
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Build app bundle
+        run: ./build.sh
+
+      - name: Privacy probes self-test
+        run: build/HeadroomGuard.app/Contents/MacOS/HeadroomGuard --privacy-selftest
+
+      - name: Upload app
+        uses: actions/upload-artifact@v4
+        with:
+          name: HeadroomGuard-app
+          path: macos/HeadroomGuard/build/HeadroomGuard.app
